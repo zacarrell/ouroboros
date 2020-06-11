@@ -1,10 +1,10 @@
 ﻿param (
-    [string]$Tags = "set:rtq_saved_posts",
+    [string]$Tags,
     [switch]$UpdateTags
 )
 
 Import-Module $PSScriptRoot\ouroboros.psm1 -Force
-Import-Module "$PSScriptRoot\..\utils.psm1" -Force
+Import-Module $PSScriptRoot\..\utils.psm1 -Force
 
 $OUROBOROS_PATH = Get-OuroborosPath
 
@@ -33,16 +33,16 @@ Write-Host "$($AllPosts.Count) posts found."
 
 $tags = $tags -replace ':','='
 $QUERY_PATH = "$OUROBOROS_PATH\queries\$tags"
-If (!(Test-Path -LiteralPath "$QUERY_PATH")) {
+if (!(Test-Path -LiteralPath "$QUERY_PATH")) {
     New-Item "$QUERY_PATH" -ItemType Directory
 }
 
 $NewPosts = New-Object System.Collections.ArrayList
 $NewPostLocations = New-Object System.Collections.ArrayList
-ForEach ($Post In $AllPosts) {
+foreach ($Post In $AllPosts) {
     $root = "$OUROBOROS_PATH\$tags"
     $postOnLocal = Get-FileDestination "$OUROBOROS_PATH\posts" $Post
-    If (!(Test-Path $postOnLocal)) {
+    if (!(Test-Path $postOnLocal)) {
         $NewPosts.Add($Post) | Out-Null
         $NewPostLocations.Add($postOnLocal) | Out-Null
     }
@@ -72,4 +72,4 @@ if ($UpdateTags) {
     Write-Output "$NewTags new tags found."
 }
 
-Start-Sleep 2
+Start-Sleep 1  # respect the rate limit

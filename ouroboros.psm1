@@ -8,7 +8,7 @@ $TAGS_PATH = Join-Path $OUROBOROS_PATH "tags"
 
 function Update-Tags($Post) {
     $NewTags = New-Object System.Collections.ArrayList
-    Foreach ($tag in ConvertTo-FlatTagsList $post.tags) {
+    foreach ($tag in ConvertTo-FlatTagsList $post.tags) {
         If (!(Test-ValidFileNameCharacters $tag)) { Continue }
         If (!(Test-Path -LiteralPath "$TAGS_PATH\$tag")) {
             New-Item -ItemType Directory -Path "$TAGS_PATH\$tag" | Out-Null
@@ -22,22 +22,25 @@ function Update-Tags($Post) {
     }
     return $NewTags.Count
 }
+
 function Get-OuroborosPath {
     return $OUROBOROS_PATH
 }
-Function Get-ApiUrl {
-Param(
+
+function Get-ApiUrl {
+param(
     [string]$Method,
     [hashtable]$Parameters
     )
     $EncodedParameters = @()
-    ForEach ($Parameter In $Parameters.GetEnumerator()) {
+    foreach ($Parameter In $Parameters.GetEnumerator()) {
         $ParameterKey = [System.Web.HttpUtility]::UrlEncode($Parameter.Name)
         $ParameterValue = [System.Web.HttpUtility]::UrlEncode($Parameter.Value)
         $EncodedParameters += "$ParameterKey=$ParameterValue"
     }
-    Return "https://e621.net/$Method.json?" + ($EncodedParameters -join '&')
+    return "https://e621.net/$Method.json?" + ($EncodedParameters -join '&')
 }
+
 function Get-ApiData {
 param(
     [string]$Method,
@@ -47,6 +50,7 @@ param(
     $Result = $Response.Content | ConvertFrom-Json
     return $Result
 }
+
 function Get-PostDetails {
 param(
     [string]$ID,
@@ -60,6 +64,7 @@ param(
     }
     (Get-ApiData $method $params).posts[0]
 }
+
 function Get-PostAndOpen {
 param(
     [string]$ID,
@@ -74,11 +79,12 @@ param(
     Invoke-WebRequest -Uri $post.file.url -OutFile $path
     Invoke-Item $path
 }
+
 Function Get-FileDestination($TargetDir, $Post) {
     $Path = Join-Path $TargetDir "$($Post.id).$($Post.file.ext)"
-    Return $Path
+    return $Path
 }
-Function Get-TagShortcuts($Post) {
+function Get-TagShortcuts($Post) {
     $tags = $Post.tags -split ' '
     $tagLinks = @()
     foreach ($tag in $tags) {
@@ -90,6 +96,7 @@ Function Get-TagShortcuts($Post) {
     }
     return $tagLinks
 }
+
 function Test-ValidFileNameCharacters ($string) {
     if ($string.Contains('\') -or
         $string.Contains('/') -or
@@ -104,27 +111,30 @@ function Test-ValidFileNameCharacters ($string) {
         }
     return $true
 }
+
 function Get-Posts($Tags) {
     $AllPosts = @()
     $params = @{tags=$tags; limit=$MAX_LIMIT; page=1}
-    Do {
+    do {
         $Posts = (Get-ApiData -Method "posts" -Parameters $params).posts
         $AllPosts += $Posts
         $before_id = $Posts[-1].id
         $params.page = "b$before_id"
-    } While ($Posts.Count -eq $MAX_LIMIT)
-    Return $AllPosts
+    } while ($Posts.Count -eq $MAX_LIMIT)
+    return $AllPosts
 }
+
 function Get-PostsFromSet($Tags) {
     $AllPosts = @()
     $params = @{tags="order:set_asc $Tags"; limit=$MAX_LIMIT; page=1}
-    Do {
+    do {
         $Posts = (Get-ApiData -Method "posts" -Parameters $params).posts
         $AllPosts += $Posts
         $params.page += 1
-    } While ($Posts.Count -eq $MAX_LIMIT)
-    Return $AllPosts
+    } while ($Posts.Count -eq $MAX_LIMIT)
+    return $AllPosts
 }
+
 function Get-UnusedTags {
     $unused = @()
     dir $TAGS_PATH | foreach {
@@ -134,6 +144,7 @@ function Get-UnusedTags {
     }
     return $unused
 }
+
 function ConvertTo-FlatTagsList($TagsObject) {
     $AllTags = New-Object System.Collections.ArrayList
     $AllTags.AddRange($TagsObject.general) | Out-Null
