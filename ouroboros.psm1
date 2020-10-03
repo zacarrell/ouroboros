@@ -4,6 +4,7 @@ Import-Module "$PSScriptRoot\..\utils.psm1"
 
 $MAX_LIMIT = 320
 $OUROBOROS_PATH = "$HOME\Downloads\ouroboros"
+$OUROBOROS_URL = "https://e621.net"
 $TAGS_PATH = Join-Path $OUROBOROS_PATH "tags"
 
 function Update-Tags($Post) {
@@ -27,6 +28,7 @@ function Get-OuroborosPath {
     return $OUROBOROS_PATH
 }
 
+#DEPRECATED
 function Get-ApiUrl {
 param(
     [string]$Method,
@@ -41,6 +43,7 @@ param(
     return "https://e621.net/$Method.json?" + ($EncodedParameters -join '&')
 }
 
+#DEPRECATED
 function Get-ApiData {
 param(
     [string]$Method,
@@ -62,7 +65,7 @@ param(
     } elseif ($MD5) {
         $params = @{tags="md5:$MD5"}
     }
-    (Get-ApiData $method $params).posts[0]
+    (Invoke-RestMethod "$OUROBOROS_URL/posts.json" -Body $params).posts[0]
 }
 
 function Get-PostAndOpen {
@@ -75,15 +78,16 @@ param(
     } elseif ($MD5) {
         $post = Get-PostDetails -MD5 $MD5
     }
-    $path = [System.IO.Path]::GetTempPath() + '\' + $post.file.md5 + '.' + $post.file.ext
+    $path = "{0}\{1}.{2}" -f $env:TEMP, $post.file.md5, $post.file.ext
     Invoke-WebRequest -Uri $post.file.url -OutFile $path
     Invoke-Item $path
 }
 
-Function Get-FileDestination($TargetDir, $Post) {
+function Get-FileDestination($TargetDir, $Post) {
     $Path = Join-Path $TargetDir "$($Post.id).$($Post.file.ext)"
     return $Path
 }
+
 function Get-TagShortcuts($Post) {
     $tags = $Post.tags -split ' '
     $tagLinks = @()
@@ -114,24 +118,24 @@ function Test-ValidFileNameCharacters ($string) {
 
 function Get-Posts($Tags) {
     $AllPosts = @()
-    $params = @{tags=$tags; limit=$MAX_LIMIT; page=1}
+    $Parameters = @{tags=$tags; limit=$MAX_LIMIT; page=1}
     do {
-        $Posts = (Get-ApiData -Method "posts" -Parameters $params).posts
-        $AllPosts += $Posts
-        $before_id = $Posts[-1].id
-        $params.page = "b$before_id"
-    } while ($Posts.Count -eq $MAX_LIMIT)
+        $Data = Invoke-RestMethod "$OUROBOROS_URL/posts.json" -Body $Parameters
+        $AllPosts += $Data.posts
+        $before_id = $Data.posts[-1].id
+        $Parameters.page = "b$before_id"
+    } while ($Data.posts.Count -eq $MAX_LIMIT)
     return $AllPosts
 }
 
 function Get-PostsFromSet($Tags) {
     $AllPosts = @()
-    $params = @{tags="order:set_asc $Tags"; limit=$MAX_LIMIT; page=1}
+    $Parameters = @{tags="order:set_asc $Tags"; limit=$MAX_LIMIT; page=1}
     do {
-        $Posts = (Get-ApiData -Method "posts" -Parameters $params).posts
-        $AllPosts += $Posts
-        $params.page += 1
-    } while ($Posts.Count -eq $MAX_LIMIT)
+        $Data = Invoke-RestMethod "$OUROBOROS_URL/posts.json" -Body $Parameters
+        $AllPosts += $Data.posts
+        $Parameters.page += 1
+    } while ($Data.posts.Count -eq $MAX_LIMIT)
     return $AllPosts
 }
 
